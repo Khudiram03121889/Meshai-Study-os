@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Printer, RefreshCw, Sparkles, Loader2 } from "lucide-react";
+import { Download, RefreshCw, Sparkles, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkMath from "remark-math";
@@ -8,6 +8,8 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { streamStudyMode } from "@/lib/studyModeApi";
 import { toast } from "sonner";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 
 interface Topic {
   id: string;
@@ -86,7 +88,7 @@ export default function CheatSheetModal({ isOpen, onOpenChange, subjects }: Chea
     }
   };
 
-  const handlePrint = () => {
+  const handleDownloadPDF = async () => {
     const printEl = document.getElementById("printable-cheat-sheet");
     if (!printEl) return;
 
@@ -95,37 +97,91 @@ export default function CheatSheetModal({ isOpen, onOpenChange, subjects }: Chea
     const chapterName = chapter?.name || "General";
     const subjectName = subject?.name || "General";
 
-    const cleanHtml = printEl.innerHTML
-      .replace(/\bprose-invert\b/g, "")
-      .replace(/\btext-muted-foreground\b/g, "")
-      .replace(/\btext-foreground\b/g, "")
-      .replace(/\btext-primary\b/g, "")
-      .replace(/\bbg-card\b/g, "")
-      .replace(/\bbg-secondary\b/g, "");
+    setIsGenerating(true);
+    const toastId = toast.loading("Generating structured PDF...");
 
-    const container = document.createElement("div");
-    container.id = "print-container";
-    container.className = "prose prose-sm max-w-none text-black p-8 bg-white md:p-12";
-    container.innerHTML = `
-      <div style="margin-bottom: 24px; border-bottom: 2px solid #333; padding-bottom: 12px; font-family: 'Space Grotesk', sans-serif;">
-        <h1 style="font-size: 26px; font-weight: bold; margin: 0; color: black;">⚡ Cheat Sheet: ${chapterName}</h1>
-        <p style="font-size: 14px; color: #555; margin: 6px 0 0 0; font-weight: 500;">
-          Subject: ${subjectName} &nbsp;•&nbsp; Compiled via MeshStudy AI
-        </p>
-      </div>
-      <div style="font-family: 'Inter', sans-serif; color: black;">
-        ${cleanHtml}
-      </div>`;
-    
-    document.body.appendChild(container);
-    const originalTitle = document.title;
-    document.title = `${chapterName.replace(/[^a-zA-Z0-9]/g, "_")}_CheatSheet`;
-    
-    document.body.classList.add("printing-learn-content");
-    window.print();
-    document.title = originalTitle;
-    document.body.classList.remove("printing-learn-content");
-    document.body.removeChild(container);
+    try {
+      // Create off-screen container styled for high-resolution canvas capture
+      const tempContainer = document.createElement("div");
+      tempContainer.style.position = "absolute";
+      tempContainer.style.left = "-9999px";
+      tempContainer.style.top = "-9999px";
+      tempContainer.style.width = "800px";
+      tempContainer.style.padding = "40px";
+      tempContainer.style.background = "#ffffff";
+      
+      const cleanHtml = printEl.innerHTML
+        .replace(/\bprose-invert\b/g, "")
+        .replace(/\btext-muted-foreground\b/g, "")
+        .replace(/\btext-foreground\b/g, "")
+        .replace(/\btext-primary\b/g, "")
+        .replace(/\bbg-card\b/g, "")
+        .replace(/\bbg-secondary\b/g, "");
+
+      tempContainer.innerHTML = `
+        <div style="margin-bottom: 24px; border-bottom: 2.5px solid #1e293b; padding-bottom: 12px; font-family: 'Space Grotesk', sans-serif;">
+          <h1 style="font-size: 26px; font-weight: 800; margin: 0; color: #0f172a;">⚡ Cheat Sheet: ${chapterName}</h1>
+          <p style="font-size: 14px; color: #475569; margin: 6px 0 0 0; font-weight: 600;">
+            Subject: ${subjectName} &nbsp;•&nbsp; Compiled via MeshStudy AI
+          </p>
+        </div>
+        <div class="prose prose-sm" style="font-family: 'Inter', sans-serif;">
+          ${cleanHtml}
+        </div>
+      `;
+
+      const style = document.createElement("style");
+      style.innerHTML = `
+        .prose * { color: #0f172a !important; font-family: 'Inter', sans-serif !important; }
+        .prose h2 { color: #0f766e !important; text-transform: uppercase !important; border-bottom: 1.5px solid #cbd5e1 !important; padding-bottom: 4px; font-size: 15px !important; margin-top: 20px !important; }
+        .prose p { font-size: 12px !important; line-height: 1.5 !important; }
+        .prose ul { list-style-type: disc !important; padding-left: 18px !important; }
+        .prose li { font-size: 11.5px !important; margin-bottom: 4px !important; }
+        .katex-display { background-color: #f8fafc !important; border: 1px solid #cbd5e1 !important; color: #000000 !important; padding: 8px !important; margin: 8px 0 !important; border-radius: 6px !important; }
+        .katex { color: #000000 !important; font-size: 1.05em !important; }
+      `;
+      tempContainer.appendChild(style);
+      document.body.appendChild(tempContainer);
+
+      const canvas = await html2canvas(tempContainer, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+      });
+
+      document.body.removeChild(tempContainer);
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      
+      const imgWidth = 210;
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      const filename = `${chapterName.replace(/[^a-zA-Z0-9]/g, "_")}_CheatSheet.pdf`;
+      pdf.save(filename);
+      toast.dismiss(toastId);
+      toast.success("PDF downloaded successfully! 📄");
+    } catch (err: any) {
+      console.error(err);
+      toast.dismiss(toastId);
+      toast.error("Failed to generate PDF");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -239,10 +295,10 @@ export default function CheatSheetModal({ isOpen, onOpenChange, subjects }: Chea
               <RefreshCw className="w-3.5 h-3.5" /> Re-generate
             </button>
             <button
-              onClick={handlePrint}
+              onClick={handleDownloadPDF}
               className="px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-primary/20"
             >
-              <Printer className="w-3.5 h-3.5" /> Print Cheat Sheet
+              <Download className="w-3.5 h-3.5" /> Download PDF
             </button>
           </div>
         )}
