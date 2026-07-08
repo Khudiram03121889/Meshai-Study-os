@@ -101,42 +101,89 @@
 }
 
 @media print {
+  @page {
+    size: A4;
+    margin: 1.6cm !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   body.printing-learn-content #root {
     display: none !important;
   }
   body.printing-learn-content #print-container {
     display: block !important;
-    color: black !important;
     background: white !important;
     font-family: 'Inter', sans-serif !important;
+    padding: 30px !important;
   }
   body.printing-learn-content {
     background: white !important;
-    color: black !important;
   }
-  /* Force dark text for printed markdown */
-  body.printing-learn-content #print-container .prose {
-    color: black !important;
+  /* Force dark colors for all text to prevent white-on-white text printing */
+  body.printing-learn-content #print-container,
+  body.printing-learn-content #print-container *:not(h2) {
+    color: #0f172a !important; /* Slate 900 / Deep Charcoal */
   }
-  body.printing-learn-content #print-container h1,
-  body.printing-learn-content #print-container h2,
-  body.printing-learn-content #print-container h3,
-  body.printing-learn-content #print-container h4,
-  body.printing-learn-content #print-container strong {
-    color: black !important;
+  body.printing-learn-content #print-container h2 {
+    color: #0f766e !important; /* Premium Teal Header */
+  }
+  body.printing-learn-content #print-container h1 {
+    font-size: 26px !important;
+    font-weight: 800 !important;
+    border-bottom: 2.5px solid #1e293b !important;
+    padding-bottom: 8px !important;
+    margin-bottom: 18px !important;
+  }
+  body.printing-learn-content #print-container h2 {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    border-bottom: 1.5px solid #e2e8f0 !important;
+    padding-bottom: 4px !important;
+    margin-top: 20px !important;
+    margin-bottom: 10px !important;
+    break-after: avoid !important;
+  }
+  body.printing-learn-content #print-container h3 {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    margin-top: 12px !important;
+    margin-bottom: 6px !important;
+  }
+  body.printing-learn-content #print-container p {
+    font-size: 11px !important;
+    line-height: 1.5 !important;
+    margin-bottom: 6px !important;
+  }
+  body.printing-learn-content #print-container ul {
+    list-style-type: disc !important;
+    padding-left: 18px !important;
+    margin-bottom: 10px !important;
+  }
+  body.printing-learn-content #print-container li {
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+    margin-bottom: 3px !important;
   }
   body.printing-learn-content #print-container code {
-    color: #333 !important;
-    background-color: #f4f4f4 !important;
-    border: 1px solid #ddd !important;
+    color: #0f172a !important;
+    background-color: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 2px 4px !important;
+    border-radius: 3px !important;
+    font-size: 9.5px !important;
   }
   /* KaTeX print alignment */
   body.printing-learn-content #print-container .katex-display {
-    background-color: #fafafa !important;
-    border: 1px solid #eaeaea !important;
+    background-color: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
     color: black !important;
     padding: 8px !important;
-    border-radius: 4px !important;
+    margin: 8px 0 !important;
+    border-radius: 6px !important;
   }
   /* Page break rules for clean printable PDFs */
   body.printing-learn-content #print-container h1,

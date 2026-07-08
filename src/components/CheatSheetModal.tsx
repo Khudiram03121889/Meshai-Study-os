@@ -95,6 +95,14 @@ export default function CheatSheetModal({ isOpen, onOpenChange, subjects }: Chea
     const chapterName = chapter?.name || "General";
     const subjectName = subject?.name || "General";
 
+    const cleanHtml = printEl.innerHTML
+      .replace(/\bprose-invert\b/g, "")
+      .replace(/\btext-muted-foreground\b/g, "")
+      .replace(/\btext-foreground\b/g, "")
+      .replace(/\btext-primary\b/g, "")
+      .replace(/\bbg-card\b/g, "")
+      .replace(/\bbg-secondary\b/g, "");
+
     const container = document.createElement("div");
     container.id = "print-container";
     container.className = "prose prose-sm max-w-none text-black p-8 bg-white md:p-12";
@@ -106,7 +114,7 @@ export default function CheatSheetModal({ isOpen, onOpenChange, subjects }: Chea
         </p>
       </div>
       <div style="font-family: 'Inter', sans-serif; color: black;">
-        ${printEl.innerHTML.replace(/\bprose-invert\b/g, "")}
+        ${cleanHtml}
       </div>`;
     
     document.body.appendChild(container);
