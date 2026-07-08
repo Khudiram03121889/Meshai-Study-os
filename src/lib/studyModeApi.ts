@@ -1,6 +1,6 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getFunctionUrl } from "@/integrations/supabase/client";
 
-const STUDY_MODE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/study-mode`;
+const STUDY_MODE_URL = getFunctionUrl("study-mode");
 
 /** Read board/class context from the current auth session + localStorage. */
 async function getUserContext(): Promise<{ board: string; classLabel: string }> {

@@ -7,6 +7,7 @@ const proxyMap: Record<string, number> = {
   "ai-chat-v2": 8001,
   "parse-quick-log": 8002,
   "revision-suggest": 8003,
+  "study-mode": 8004,
 };
 
 // Spawn subprocesses
@@ -79,6 +80,7 @@ const processes = [
   runFunc("ai-chat-v2", 8001),
   runFunc("parse-quick-log", 8002),
   runFunc("revision-suggest", 8003),
+  runFunc("study-mode", 8004),
 ];
 
 // Clean shutdown
