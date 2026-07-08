@@ -26,7 +26,7 @@ async function embedOne(text: string, apiKey: string): Promise<number[]> {
   return json.data[0].embedding;
 }
 
-const SYSTEM_PROMPT_BASE = `You are Sameer's Study OS AI Tutor — a memory-aware academic companion for Karnataka 2nd PUC (Class 12).
+const SYSTEM_PROMPT_BASE = `You are the student's Study OS AI Tutor — a memory-aware academic companion for Karnataka 2nd PUC (Class 12).
 
 You are answering inside the context of a SPECIFIC lecture note the student uploaded. You also have access to RELATED notes from earlier lectures, weak-area memory, and past conversation context. Use them naturally — refer to them when relevant ("In your previous lecture on X…", "You marked Y as a weak area…").
 

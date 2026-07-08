@@ -232,7 +232,7 @@ export default function Register({ onToggle }: RegisterProps) {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Sameer"
+                placeholder="e.g. John Doe"
                 className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                 required
               />
