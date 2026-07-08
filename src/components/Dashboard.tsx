@@ -40,7 +40,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       supabase
         .from("lecturers")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id" as any, user.id)
         .then(({ data }) => {
           if (data) setDbLecturers(data);
         });

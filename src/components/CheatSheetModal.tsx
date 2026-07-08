@@ -194,19 +194,20 @@ export default function CheatSheetModal({ isOpen, onOpenChange, subjects }: Chea
 
             {/* Print Container Wrapper */}
             <div id="printable-cheat-sheet" className="font-sans">
-              <ReactMarkdown
-                remarkPlugins={[remarkBreaks, remarkMath]}
-                rehypePlugins={[rehypeKatex]}
-                className="prose prose-invert max-w-none text-xs leading-relaxed space-y-4
-                  prose-headings:font-display prose-headings:font-bold prose-headings:text-foreground prose-headings:mt-4 prose-headings:mb-2
-                  prose-h1:text-xl prose-h1:border-b prose-h1:border-border prose-h1:pb-2
-                  prose-h2:text-sm prose-h2:text-primary prose-h2:uppercase prose-h2:tracking-wider
-                  prose-strong:text-foreground prose-strong:font-semibold
-                  prose-ul:list-disc prose-ul:pl-4 prose-li:my-1
-                  print:prose-neutral print:text-black print:prose-headings:text-black print:prose-strong:text-black"
-              >
-                {content}
-              </ReactMarkdown>
+              <div className="prose prose-invert max-w-none text-xs leading-relaxed space-y-4
+                prose-headings:font-display prose-headings:font-bold prose-headings:text-foreground prose-headings:mt-4 prose-headings:mb-2
+                prose-h1:text-xl prose-h1:border-b prose-h1:border-border prose-h1:pb-2
+                prose-h2:text-sm prose-h2:text-primary prose-h2:uppercase prose-h2:tracking-wider
+                prose-strong:text-foreground prose-strong:font-semibold
+                prose-ul:list-disc prose-ul:pl-4 prose-li:my-1
+                print:prose-neutral print:text-black print:prose-headings:text-black print:prose-strong:text-black">
+                <ReactMarkdown
+                  remarkPlugins={[remarkBreaks, remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                >
+                  {content}
+                </ReactMarkdown>
+              </div>
             </div>
           </div>
         )}
