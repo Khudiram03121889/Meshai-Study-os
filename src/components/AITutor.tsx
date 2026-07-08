@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { emitEvent } from "@/lib/events";
-import { Send, Bot, User, Plus, History, ArrowLeft, Trash2 } from "lucide-react";
+import { Send, Bot, User, Plus, History, ArrowLeft, Trash2, Paperclip, X, Image } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkMath from "remark-math";
@@ -18,6 +18,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   model?: string;
+  image?: string;
 }
 
 interface Conversation {
@@ -41,11 +42,11 @@ function useStudyContext() {
 
   useEffect(() => {
     if (user) {
-      supabase
+      (supabase as any)
         .from("lecturers")
         .select("*")
         .eq("user_id", user.id)
-        .then(({ data }) => {
+        .then(({ data }: any) => {
           if (data) setDbLecturers(data);
         });
     }
@@ -74,8 +75,8 @@ function useStudyContext() {
   return { startedChapters, completedChapters, recentLogs };
 }
 
-async function streamChat({ messages, studyContext, language, onDelta, onModel, onDone }: {
-  messages: Message[]; studyContext: any; language: string; onDelta: (text: string) => void; onModel: (model: string) => void; onDone: () => void;
+async function streamChat({ messages, studyContext, language, imageUrl, onDelta, onModel, onDone }: {
+  messages: Message[]; studyContext: any; language: string; imageUrl?: string; onDelta: (text: string) => void; onModel: (model: string) => void; onDone: () => void;
 }) {
   const { data: { session } } = await supabase.auth.getSession();
   const userId = session?.user?.id;
@@ -90,7 +91,7 @@ async function streamChat({ messages, studyContext, language, onDelta, onModel, 
   const resp = await fetch(CHAT_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-    body: JSON.stringify({ query: lastUserMsg, history, subjectId, language }),
+    body: JSON.stringify({ query: lastUserMsg, history, subjectId, language, imageUrl }),
   });
 
   if (!resp.ok) {
@@ -161,7 +162,25 @@ export default function AITutor() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image too large (max 5MB)");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const getWelcomeMessage = () => {
     const list = subjects.map(s => s.name);
@@ -190,12 +209,12 @@ export default function AITutor() {
 
   const fetchConversations = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("chat_conversations")
       .select("*")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
-    if (data) setConversations(data);
+    if (data) setConversations(data as any[]);
   }, [user]);
 
   useEffect(() => {
@@ -204,19 +223,29 @@ export default function AITutor() {
 
   const saveMessages = useCallback(async (convId: string, msgs: Message[]) => {
     if (!user) return;
-    await supabase.from("chat_messages").delete().eq("conversation_id", convId);
-    const rows = msgs.map((m) => ({
-      conversation_id: convId,
-      user_id: user.id,
-      role: m.role,
-      content: m.content,
-      model_routed: m.model || null,
-    }));
-    await supabase.from("chat_messages").insert(rows as any);
+    await (supabase as any).from("chat_messages").delete().eq("conversation_id", convId);
+    const rows = msgs.map((m) => {
+      let content = m.content;
+      if (m.image) {
+        content = `[Photo] ${content || "Solve or explain this image."}`;
+      }
+      return {
+        conversation_id: convId,
+        user_id: user.id,
+        role: m.role,
+        content,
+        model_routed: m.model || null,
+      };
+    });
+    await (supabase as any).from("chat_messages").insert(rows as any);
     const firstUser = msgs.find((m) => m.role === "user");
     if (firstUser) {
-      const title = firstUser.content.slice(0, 80) + (firstUser.content.length > 80 ? "..." : "");
-      await supabase.from("chat_conversations").update({ title, updated_at: new Date().toISOString() }).eq("id", convId);
+      let title = firstUser.content;
+      if (firstUser.image && !title) {
+        title = "Image doubt";
+      }
+      const slicedTitle = title.slice(0, 80) + (title.length > 80 ? "..." : "");
+      await (supabase as any).from("chat_conversations").update({ title: slicedTitle, updated_at: new Date().toISOString() }).eq("id", convId);
     }
   }, [user]);
 
@@ -229,13 +258,21 @@ export default function AITutor() {
   const loadConversation = async (conv: Conversation) => {
     setLoadingHistory(true);
     setShowHistory(false);
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("chat_messages")
       .select("*")
       .eq("conversation_id", conv.id)
       .order("created_at", { ascending: true });
     if (data && data.length > 0) {
-      setMessages(data.map((m: any) => ({ role: m.role, content: m.content, model: m.model_routed })));
+      setMessages(data.map((m: any) => {
+        let content = m.content;
+        let image: string | undefined = undefined;
+        if (content.startsWith("[Photo] ")) {
+          content = content.replace(/^\[Photo\]\s*/, "");
+          image = "placeholder";
+        }
+        return { role: m.role, content, model: m.model_routed, image };
+      }));
     } else {
       setMessages([WELCOME_MSG]);
     }
@@ -245,29 +282,38 @@ export default function AITutor() {
 
   const deleteConversation = async (convId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    await supabase.from("chat_conversations").delete().eq("id", convId);
+    await (supabase as any).from("chat_conversations").delete().eq("id", convId);
     setConversations((prev) => prev.filter((c) => c.id !== convId));
     if (activeConversationId === convId) startNewChat();
   };
 
   const handleSend = async () => {
-    if (!input.trim() || loading || !user) return;
-    const userMsg: Message = { role: "user", content: input.trim() };
+    if ((!input.trim() && !selectedImage) || loading || !user) return;
+    const userMsg: Message = { 
+      role: "user", 
+      content: input.trim(),
+      image: selectedImage || undefined
+    };
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
     setInput("");
+    setSelectedImage(null);
     setLoading(true);
     emitEvent('ai.explanation_requested', { query: userMsg.content.slice(0, 200) });
 
     let convId = activeConversationId;
     if (!convId) {
-      const { data } = await supabase
+      let title = userMsg.content;
+      if (userMsg.image && !title) {
+        title = "Image doubt";
+      }
+      const { data } = await (supabase as any)
         .from("chat_conversations")
-        .insert({ user_id: user.id, title: userMsg.content.slice(0, 80) })
+        .insert({ user_id: user.id, title: title.slice(0, 80) })
         .select("id")
         .single();
       if (data) {
-        convId = data.id;
+        convId = (data as any).id;
         setActiveConversationId(convId);
       }
     }
@@ -301,6 +347,7 @@ export default function AITutor() {
         messages: updatedMessages,
         studyContext,
         language,
+        imageUrl: userMsg.image,
         onDelta: (chunk) => upsertAssistant(chunk),
         onModel: (model) => handleModel(model),
         onDone: async () => {
@@ -412,12 +459,33 @@ export default function AITutor() {
                 <div className={`max-w-[80%] px-4 py-3 rounded-xl text-sm break-words ${
                   msg.role === "assistant" ? "bg-card border border-border text-foreground" : "bg-primary/10 text-foreground border border-primary/20"
                 }`}>
-                  {msg.role === "assistant" && msg.model && (
-                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-primary/90 mb-2 border border-primary/20 bg-primary/5 rounded-full px-2.5 py-0.5 w-fit select-none">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                      <span>Mesh: {msg.model.replace("openai/", "").replace("anthropic/", "").replace("google/", "")}</span>
-                    </div>
-                  )}
+                  {msg.role === "assistant" && msg.model && (() => {
+                    const modelName = msg.model.toLowerCase();
+                    let badgeClass = "text-primary/90 border-primary/20 bg-primary/5";
+                    let dotClass = "bg-primary";
+                    let provider = "Mesh";
+                    
+                    if (modelName.includes("claude") || modelName.includes("anthropic")) {
+                      badgeClass = "text-orange-400 border-orange-500/20 bg-orange-500/5";
+                      dotClass = "bg-orange-500";
+                      provider = "Mesh: Anthropic";
+                    } else if (modelName.includes("gpt") || modelName.includes("openai")) {
+                      badgeClass = "text-emerald-400 border-emerald-500/20 bg-emerald-500/5";
+                      dotClass = "bg-emerald-500";
+                      provider = "Mesh: OpenAI";
+                    } else if (modelName.includes("gemini") || modelName.includes("google")) {
+                      badgeClass = "text-indigo-400 border-indigo-500/20 bg-indigo-500/5";
+                      dotClass = "bg-indigo-500";
+                      provider = "Mesh: Google";
+                    }
+                    
+                    return (
+                      <div className={`flex items-center gap-1.5 text-[10px] font-bold mb-2 border rounded-full px-2.5 py-0.5 w-fit select-none transition-all ${badgeClass}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${dotClass}`} />
+                        <span>{provider} • {msg.model.replace("openai/", "").replace("anthropic/", "").replace("google/", "")}</span>
+                      </div>
+                    );
+                  })()}
                   {msg.role === "assistant" ? (
                     <div className="prose prose-sm prose-invert max-w-none break-words overflow-hidden
                       [&_hr]:my-6 [&_hr]:border-white/20 [&_hr]:border-t-2 [&_hr]:border-dashed
@@ -432,7 +500,23 @@ export default function AITutor() {
                     ">
                       <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks]} rehypePlugins={[rehypeKatex]}>{preprocessMarkdown(msg.content)}</ReactMarkdown>
                     </div>
-                  ) : msg.content}
+                  ) : (
+                    <>
+                      {msg.image && (
+                        <div className="mb-2 max-w-sm rounded-lg overflow-hidden border border-border/50 bg-black/20">
+                          {msg.image === "placeholder" ? (
+                            <div className="flex items-center gap-2 p-3 text-xs text-muted-foreground">
+                              <Image className="w-4 h-4" />
+                              <span>Image Attachment</span>
+                            </div>
+                          ) : (
+                            <img src={msg.image} alt="Attachment" className="max-h-48 object-contain w-full" />
+                          )}
+                        </div>
+                      )}
+                      {msg.content}
+                    </>
+                  )}
                 </div>
               </div>
             ))
@@ -457,21 +541,51 @@ export default function AITutor() {
 
       {/* Input bar — pinned at bottom */}
       <div className="shrink-0 px-4 md:px-6 py-3 border-t border-border bg-card/50">
-        <div className="max-w-3xl mx-auto flex gap-2">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Ask me anything about your subjects..."
-            className="flex-1 bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || loading}
-            className="gradient-primary text-primary-foreground px-4 py-3 rounded-xl disabled:opacity-50 transition-opacity"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+        <div className="max-w-3xl mx-auto flex flex-col gap-2">
+          {/* Image preview area */}
+          {selectedImage && (
+            <div className="flex items-center gap-2 p-2 bg-card border border-border rounded-xl w-fit relative group">
+              <img src={selectedImage} alt="Preview" className="h-16 w-16 object-cover rounded-lg" />
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground p-1 rounded-full hover:bg-destructive/90 transition-colors shadow-lg"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+          
+          <div className="flex gap-2 items-center">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageSelect}
+              accept="image/*"
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="shrink-0 p-3 rounded-xl border border-border bg-card hover:bg-accent/10 transition-colors text-muted-foreground hover:text-foreground"
+              title="Attach photo/doubt"
+            >
+              <Paperclip className="w-4 h-4" />
+            </button>
+            
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              placeholder="Ask me anything, or attach a doubt photo..."
+              className="flex-1 bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <button
+              onClick={handleSend}
+              disabled={(!input.trim() && !selectedImage) || loading}
+              className="gradient-primary text-primary-foreground px-4 py-3 rounded-xl disabled:opacity-50 transition-opacity shrink-0"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

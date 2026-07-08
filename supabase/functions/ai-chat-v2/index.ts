@@ -14,12 +14,12 @@ serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const { query, history = [], subjectId, language = "english" } = await req.json();
-    if (!query) throw new Error("Query is required");
+    const { query, history = [], subjectId, language = "english", imageUrl } = await req.json();
+    if (!query && !imageUrl) throw new Error("Query or image is required");
 
     let resolvedSubjectId = subjectId;
     if (!resolvedSubjectId || !["physics", "chemistry", "mathematics"].includes(resolvedSubjectId)) {
-      resolvedSubjectId = detectSubject(query, history) || undefined;
+      resolvedSubjectId = detectSubject(query || "", history) || undefined;
     }
 
     const authHeader = req.headers.get("Authorization");
@@ -43,7 +43,7 @@ serve(async (req: Request) => {
 
     // 1. Intent Detection (<5ms)
     const start = Date.now();
-    const intentRes = detectIntent(query);
+    const intentRes = detectIntent(query || "Solve this problem");
     console.log(`[ai-chat-v2] Intent: ${intentRes.intent} (${intentRes.confidence}), resolvedSubjectId: ${resolvedSubjectId}`);
 
     // 2. Fetch User Preferences (parallel with Planner)
@@ -80,7 +80,7 @@ serve(async (req: Request) => {
       const embedRes = await fetch("https://api.meshapi.ai/v1/embeddings", {
         method: "POST",
         headers: { "Authorization": `Bearer ${meshApiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "openai/text-embedding-3-small", input: query })
+        body: JSON.stringify({ model: "openai/text-embedding-3-small", input: query || "Solve this problem" })
       });
       const embedData = await embedRes.json();
       queryEmbedding = embedData.data[0].embedding;
@@ -108,10 +108,18 @@ serve(async (req: Request) => {
       ? "google/gemini-1.5-pro"
       : "openai/gpt-4o";
 
+    let userContent: any = query || "Solve or explain this image.";
+    if (imageUrl) {
+      userContent = [
+        { type: "text", text: query || "Solve or explain this image." },
+        { type: "image_url", image_url: { url: imageUrl } }
+      ];
+    }
+
     const messages = [
       { role: "system", content: systemPrompt },
       ...history.map((m: any) => ({ role: m.role, content: m.message || m.content })),
-      { role: "user", content: query }
+      { role: "user", content: userContent }
     ];
 
     const llmStart = Date.now();

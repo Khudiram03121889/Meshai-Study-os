@@ -6,6 +6,7 @@ import { useSubjects } from "@/data/syllabus";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import CheatSheetModal from "./CheatSheetModal";
 
 interface DashboardProps {
   onNavigate: (page: string) => void;
@@ -16,6 +17,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const subjects = useSubjects();
   const { logs, tracks } = useStudyStore();
   const [dbLecturers, setDbLecturers] = useState<any[]>([]);
+  const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
   
   const studentName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student";
   const classLevel = user ? Number(localStorage.getItem(`user_class_${user.id}`) || "12") : 12;
@@ -237,14 +239,20 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           {[
             { label: "Browse Syllabus", page: "syllabus", icon: "📚" },
             { label: "Log Class", page: "log", icon: "✏️" },
-            { label: "Practice MCQs", page: "modes", icon: "🎯" },
+            { label: "Generate Cheat Sheet", page: "cheatsheet", icon: "⚡" },
             { label: "View Performance", page: "performance", icon: "📊" },
             { label: "AI Tutor Chat", page: "chat", icon: "🤖" },
             { label: "Study Modes", page: "modes", icon: "🧠" },
           ].map((action) => (
             <button
               key={action.label}
-              onClick={() => onNavigate(action.page)}
+              onClick={() => {
+                if (action.page === "cheatsheet") {
+                  setIsCheatSheetOpen(true);
+                } else {
+                  onNavigate(action.page);
+                }
+              }}
               className="bg-secondary hover:bg-secondary/80 border border-border rounded-xl p-4 text-left transition-colors"
             >
               <span className="text-2xl mb-2 block">{action.icon}</span>
@@ -288,6 +296,12 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           </div>
         </div>
       )}
+      {/* Cheat Sheet Generator Modal */}
+      <CheatSheetModal
+        isOpen={isCheatSheetOpen}
+        onOpenChange={setIsCheatSheetOpen}
+        subjects={filteredSubjects}
+      />
     </div>
   );
 }

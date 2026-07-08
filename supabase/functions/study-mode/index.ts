@@ -107,6 +107,35 @@ Be specific about mistake types. Detect:
 - Calculation errors (addition, subtraction, sign errors)
 - Formula misuse
 - Careless mistakes`,
+
+  cheatsheet: `You are the student's Study OS Cheat Sheet Generator for Class 11-12 Boards & Competitive exams.
+Generate a highly condensed, printable, single-page summary for the specified topic.
+IMPORTANT: For all math/formulas, use KaTeX-compatible notation: inline math with single dollar signs $...$, display math with double dollar signs $$...$$. Use \\frac{}{}, \\vec{}, \\hat{}, \\varepsilon, \\times, \\cdot etc. Never use \\[ \\] or \\( \\) delimiters.
+
+OUTPUT FORMAT (strict markdown):
+# ⚡ Cheat Sheet: {topic}
+## Chapter: {chapter}
+
+## 📝 Key Definitions & Concepts
+- **[Concept/Term 1]:** High-yield exam definition.
+- **[Concept/Term 2]:** High-yield exam definition.
+
+## 📐 Essential Formulas & Constants
+**Formula:** $ [Equation] $
+**Where:**
+- Symbol 1 → Meaning (unit)
+- Symbol 2 → Meaning (unit)
+
+## 💡 Important Derivations & Mechanisms
+1. **Starting point:** $ [Starting equation] $
+2. **Key step:** $ [Integration/differentiation/reaction intermediate] $
+3. **Result:** $ [Final equation] $
+   - *Logic:* Brief physical significance.
+
+## ⚠️ Common Pitfalls & Mistakes
+- **[Common Trap 1]:** Explain the common calculation, units, or sign error.
+- **[Common Trap 2]:** Explain typical conceptual errors on this topic.
+`,
 };
 
 // Tool definitions for structured output
@@ -327,7 +356,7 @@ serve(async (req) => {
     if (!apiKey) throw new Error("MESH_API_KEY is not configured");
 
     let userMessage = "";
-    if (mode === "prelearn" || mode === "learn") {
+    if (mode === "prelearn" || mode === "learn" || mode === "cheatsheet") {
       userMessage = `Subject: ${subject}\nChapter: ${chapter}\nTopic: ${topic}`;
       if (context) userMessage += `\nStudent Context: ${context}`;
     } else if (mode === "practice") {
@@ -343,7 +372,7 @@ serve(async (req) => {
       userMessage = `Subject: ${subject}\nChapter: ${chapter}\nMistakes:\n${JSON.stringify(mistakes)}`;
     }
 
-    const isStreaming = mode === "prelearn" || mode === "learn";
+    const isStreaming = mode === "prelearn" || mode === "learn" || mode === "cheatsheet";
     const usesToolCalling = TOOL_DEFINITIONS[mode] !== undefined;
 
     const chatUrl = "https://api.meshapi.ai/v1/chat/completions";
