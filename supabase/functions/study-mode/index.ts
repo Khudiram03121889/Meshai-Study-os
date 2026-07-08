@@ -344,14 +344,15 @@ serve(async (req) => {
 
     const MESH_API_KEY = Deno.env.get("MESH_API_KEY");
 
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
     let apiKey = MESH_API_KEY;
-    if (!apiKey) {
-      const { data: dbKey } = await admin.rpc("get_mesh_key");
-      if (dbKey) apiKey = dbKey;
+    if (!apiKey || apiKey === "CG" || apiKey.length < 5) {
+      console.log("[study-mode] MESH_API_KEY is placeholder or empty. Fetching from Vault via get_mesh_key...");
+      const { data: dbKey, error: dbError } = await supabase.rpc("get_mesh_key");
+      if (dbError) {
+        console.error("[study-mode] Failed to fetch get_mesh_key RPC:", dbError);
+      } else if (dbKey) {
+        apiKey = dbKey;
+      }
     }
     if (!apiKey) throw new Error("MESH_API_KEY is not configured");
 
@@ -376,12 +377,12 @@ serve(async (req) => {
     const usesToolCalling = TOOL_DEFINITIONS[mode] !== undefined;
 
     const chatUrl = "https://api.meshapi.ai/v1/chat/completions";
-    const chatModel = "openai/o3-mini";
+    const chatModel = "openai/gpt-4o";
 
     const requestBody: any = {
       model: chatModel,
       messages: [
-        { role: "developer", content: SYSTEM_PROMPTS[mode] },
+        { role: "system", content: SYSTEM_PROMPTS[mode] },
         { role: "user", content: userMessage },
       ],
       stream: isStreaming,

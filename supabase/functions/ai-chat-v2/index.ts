@@ -38,7 +38,15 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const meshApiKey = Deno.env.get("MESH_API_KEY");
+    let meshApiKey = Deno.env.get("MESH_API_KEY");
+    if (!meshApiKey || meshApiKey === "CG" || meshApiKey.length < 5) {
+      const { data: dbKey, error: dbError } = await supabase.rpc("get_mesh_key");
+      if (dbError) {
+        console.error("[ai-chat-v2] Failed to fetch get_mesh_key RPC:", dbError);
+      } else if (dbKey) {
+        meshApiKey = dbKey;
+      }
+    }
     if (!meshApiKey) throw new Error("Missing Mesh API API Key");
 
     // 1. Intent Detection (<5ms)

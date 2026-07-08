@@ -75,6 +75,9 @@ if (Deno.env.get("VITE_SUPABASE_URL") && !Deno.env.get("SUPABASE_URL")) {
 if (Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY") && !Deno.env.get("SUPABASE_ANON_KEY")) {
   Deno.env.set("SUPABASE_ANON_KEY", Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY")!);
 }
+if (Deno.env.get("meshai_api") && !Deno.env.get("MESH_API_KEY")) {
+  Deno.env.set("MESH_API_KEY", Deno.env.get("meshai_api")!);
+}
 
 const processes = [
   runFunc("ai-chat-v2", 8001),

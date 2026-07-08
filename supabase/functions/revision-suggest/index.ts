@@ -31,9 +31,13 @@ function parseJsonResponse(content: string): any {
 async function aiJson(prompt: string): Promise<any> {
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
   let apiKey = MESH_API_KEY;
-  if (!apiKey) {
-    const { data: dbKey } = await admin.rpc("get_mesh_key");
-    if (dbKey) apiKey = dbKey;
+  if (!apiKey || apiKey === "CG" || apiKey.length < 5) {
+    const { data: dbKey, error: dbError } = await admin.rpc("get_mesh_key");
+    if (dbError) {
+      console.error("[revision-suggest] Failed to fetch get_mesh_key RPC:", dbError);
+    } else if (dbKey) {
+      apiKey = dbKey;
+    }
   }
   if (!apiKey) throw new Error("API key not configured");
   const url = "https://api.meshapi.ai/v1/chat/completions";
