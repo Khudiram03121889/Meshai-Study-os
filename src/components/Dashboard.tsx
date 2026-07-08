@@ -37,11 +37,11 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   // Fetch dynamic user lecturers
   useEffect(() => {
     if (user) {
-      supabase
+      (supabase
         .from("lecturers")
-        .select("*")
-        .eq("user_id" as any, user.id)
-        .then(({ data }) => {
+        .select("*") as any)
+        .eq("user_id", user.id)
+        .then(({ data }: any) => {
           if (data) setDbLecturers(data);
         });
     }
