@@ -1,0 +1,7 @@
+project_id = ""
+
+[functions.ai-tutor]
+verify_jwt = false
+
+[functions.generate-paper]
+verify_jwt = false

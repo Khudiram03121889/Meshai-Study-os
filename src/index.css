@@ -1,0 +1,156 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 7%;
+    --foreground: 210 20% 92%;
+
+    --card: 220 18% 10%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 220 18% 10%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 160 84% 39%;
+    --primary-foreground: 220 20% 7%;
+
+    --secondary: 220 16% 16%;
+    --secondary-foreground: 210 20% 85%;
+
+    --muted: 220 14% 14%;
+    --muted-foreground: 215 12% 52%;
+
+    --accent: 262 83% 58%;
+    --accent-foreground: 210 20% 95%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 14% 18%;
+    --input: 220 14% 18%;
+    --ring: 160 84% 39%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 220 18% 10%;
+    --sidebar-foreground: 210 20% 85%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary-foreground: 220 20% 7%;
+    --sidebar-accent: 220 16% 16%;
+    --sidebar-accent-foreground: 210 20% 85%;
+    --sidebar-border: 220 14% 18%;
+    --sidebar-ring: 160 84% 39%;
+
+    /* Custom tokens */
+    --surface-elevated: 220 16% 13%;
+    --glow-primary: 160 84% 39%;
+    --glow-accent: 262 83% 58%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 220 20% 7%;
+    --success: 160 84% 39%;
+    --info: 210 100% 56%;
+    --info-foreground: 220 20% 7%;
+    
+    --physics: 210 100% 56%;
+    --chemistry: 160 84% 39%;
+    --mathematics: 262 83% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .glow-primary {
+    box-shadow: 0 0 20px -5px hsl(var(--glow-primary) / 0.3);
+  }
+  .glow-accent {
+    box-shadow: 0 0 20px -5px hsl(var(--glow-accent) / 0.3);
+  }
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  }
+  .gradient-surface {
+    background: linear-gradient(180deg, hsl(var(--card)), hsl(var(--background)));
+  }
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+#print-container {
+  display: none;
+}
+
+@media print {
+  body.printing-learn-content #root {
+    display: none !important;
+  }
+  body.printing-learn-content #print-container {
+    display: block !important;
+    color: black !important;
+    background: white !important;
+    font-family: 'Inter', sans-serif !important;
+  }
+  body.printing-learn-content {
+    background: white !important;
+    color: black !important;
+  }
+  /* Force dark text for printed markdown */
+  body.printing-learn-content #print-container .prose {
+    color: black !important;
+  }
+  body.printing-learn-content #print-container h1,
+  body.printing-learn-content #print-container h2,
+  body.printing-learn-content #print-container h3,
+  body.printing-learn-content #print-container h4,
+  body.printing-learn-content #print-container strong {
+    color: black !important;
+  }
+  body.printing-learn-content #print-container code {
+    color: #333 !important;
+    background-color: #f4f4f4 !important;
+    border: 1px solid #ddd !important;
+  }
+  /* KaTeX print alignment */
+  body.printing-learn-content #print-container .katex-display {
+    background-color: #fafafa !important;
+    border: 1px solid #eaeaea !important;
+    color: black !important;
+    padding: 8px !important;
+    border-radius: 4px !important;
+  }
+  /* Page break rules for clean printable PDFs */
+  body.printing-learn-content #print-container h1,
+  body.printing-learn-content #print-container h2,
+  body.printing-learn-content #print-container h3,
+  body.printing-learn-content #print-container h4 {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+  body.printing-learn-content #print-container .katex-display,
+  body.printing-learn-content #print-container blockquote,
+  body.printing-learn-content #print-container pre,
+  body.printing-learn-content #print-container li {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
