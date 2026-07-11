@@ -179,10 +179,7 @@ serve(async (req: Request) => {
       const apiKey = meshApiKey;
       if (!apiKey) throw new Error("API key not configured");
       const ocrUrl = "https://api.meshapi.ai/v1/chat/completions";
-      const ocrModel = "openai/gpt-4o-mini";
-
-      console.log("Calling gpt-4o-mini for cheap initial OCR...");
-      try {
+      const callOcr = async (model: string) => {
         const isPdf = mimeType.includes("pdf");
         const ocrPrompt = isPdf
           ? "Please perform OCR and extract ALL the text from this PDF document, exactly as written. Ensure order and structure are preserved. Do not add any extra commentary."
@@ -193,7 +190,7 @@ serve(async (req: Request) => {
           method: "POST",
           headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: ocrModel,
+            model,
             messages: [{ 
               role: "user", 
               content: [
@@ -205,14 +202,25 @@ serve(async (req: Request) => {
         });
         
         if (!ocrRes.ok) {
-          throw new Error("OCR call returned status " + ocrRes.status);
+          throw new Error("OCR call returned status " + ocrRes.status + ": " + await ocrRes.text());
         }
         
         const j = await ocrRes.json();
-        let extractedContent = j.choices?.[0]?.message?.content || "";
-        
+        return j.choices?.[0]?.message?.content || "";
+      };
+
+      try {
+        let extractedContent = "";
+        try {
+          console.log("Calling google/gemini-2.5-flash for OCR...");
+          extractedContent = await callOcr("google/gemini-2.5-flash");
+        } catch (err: any) {
+          console.warn("Gemini OCR failed, retrying with gpt-4o:", err?.message);
+          extractedContent = await callOcr("openai/gpt-4o");
+        }
+
         if (!extractedContent.trim() || extractedContent.trim().length < 50) {
-           throw new Error("No readable text found in this PDF even after OCR.");
+           throw new Error("No readable text found even after OCR.");
         }
         
         console.log(`OCR extracted ${extractedContent.length} chars. Refining with gpt-4o...`);

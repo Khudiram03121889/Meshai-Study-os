@@ -84,7 +84,7 @@ async function streamChat({ messages, studyContext, language, imageUrl, onDelta,
 
   const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")?.content || "";
   const history = messages.slice(0, -1);
-  const subjectId = studyContext?.startedChapters?.[0]?.subject_id;
+  const subjectId = undefined;
 
   const token = session?.access_token;
 

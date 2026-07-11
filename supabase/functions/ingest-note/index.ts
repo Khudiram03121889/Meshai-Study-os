@@ -210,7 +210,7 @@ serve(async (req: Request) => {
 
         const res = await fetch(url, {
           method: "POST",
-          headers: { Authorization: `Bearer ${ocrApiKey}`, "Content-Type": "application/json" },
+          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: ocrModel,
             messages: [{
@@ -238,10 +238,10 @@ serve(async (req: Request) => {
 
       let extractedContent = "";
       try {
-        console.log("Calling gpt-4o-mini for cheap initial OCR...");
-        extractedContent = await callOcr("openai/gpt-4o-mini");
+        console.log("Calling google/gemini-2.5-flash for OCR...");
+        extractedContent = await callOcr("google/gemini-2.5-flash");
       } catch (e: any) {
-        console.warn("Mini OCR failed, retrying with gpt-4o:", e?.message);
+        console.warn("Gemini OCR failed, retrying with gpt-4o:", e?.message);
         try {
           extractedContent = await callOcr("openai/gpt-4o");
         } catch (e2: any) {

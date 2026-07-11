@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { detectIntent, detectSubject } from "./intent.ts";
+import { detectIntent, detectSubjectLLM } from "./intent.ts";
 import { runPlanner, type PlannerDecision } from "./planner.ts";
 import { executeTool } from "./tool-registry.ts";
 import { buildContext, buildSystemPrompt } from "./context-engine.ts";
@@ -18,9 +18,6 @@ serve(async (req: Request) => {
     if (!query && !imageUrl) throw new Error("Query or image is required");
 
     let resolvedSubjectId = subjectId;
-    if (!resolvedSubjectId || !["physics", "chemistry", "mathematics"].includes(resolvedSubjectId)) {
-      resolvedSubjectId = detectSubject(query || "", history) || undefined;
-    }
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Missing auth header");
@@ -52,7 +49,6 @@ serve(async (req: Request) => {
     // 1. Intent Detection (<5ms)
     const start = Date.now();
     const intentRes = detectIntent(query || "Solve this problem");
-    console.log(`[ai-chat-v2] Intent: ${intentRes.intent} (${intentRes.confidence}), resolvedSubjectId: ${resolvedSubjectId}`);
 
     // 2. Fetch User Preferences (parallel with Planner)
     const prefsPromise = adminClient
@@ -62,15 +58,27 @@ serve(async (req: Request) => {
       .single()
       .then((r: any) => r.data || {});
 
-    // 3. Run Planner (if required)
-    let plan: PlannerDecision = { tools_to_run: [] };
+    // 3. Subject Classification & Planning (Concurrently)
+    const subjectPromise = (async () => {
+      if (resolvedSubjectId && ["physics", "chemistry", "mathematics"].includes(resolvedSubjectId)) {
+        return resolvedSubjectId as "physics" | "chemistry" | "mathematics" | "general";
+      }
+      return detectSubjectLLM(query || "Explain this", history, meshApiKey);
+    })();
+
     let plannerLatency = 0;
-    if (intentRes.requires_planner) {
+    const plannerPromise = (async () => {
+      if (!intentRes.requires_planner) return { tools_to_run: [] } as PlannerDecision;
       const pStart = Date.now();
-      plan = await runPlanner(meshApiKey, query, intentRes.intent);
+      const res = await runPlanner(meshApiKey, query, intentRes.intent);
       plannerLatency = Date.now() - pStart;
-      console.log(`[ai-chat-v2] Planner tools:`, plan.tools_to_run.map(t => t.tool));
-    }
+      return res;
+    })();
+
+    const [plan, resolvedSubject] = await Promise.all([plannerPromise, subjectPromise]);
+    resolvedSubjectId = resolvedSubject === "general" ? undefined : resolvedSubject;
+    console.log(`[ai-chat-v2] Intent: ${intentRes.intent} (${intentRes.confidence}), resolvedSubjectId: ${resolvedSubjectId}`);
+    console.log(`[ai-chat-v2] Planner tools:`, plan.tools_to_run.map(t => t.tool));
 
     // Always include long-term memory & prior chats so the tutor stays personalized
     // and can honor / correct past insights across conversations.

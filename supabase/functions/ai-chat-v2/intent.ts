@@ -37,53 +37,53 @@ export function detectIntent(query: string): IntentResult {
   return { intent: "Academic.ConceptualExplanation", confidence: 0.70, requires_planner: true }; // default to planner
 }
 
-export function detectSubject(query: string, history: any[]): "physics" | "chemistry" | "mathematics" | null {
-  const text = (query + " " + history.map(h => h.content || h.message || "").join(" ")).toLowerCase();
-  
-  // Chemistry keywords
-  const chemKeywords = [
-    "reaction", "acid", "base", "condens", "bond", "atom", "molecule", "aldol", "ketone", "aldehyde", "ether", 
-    "ester", "alcohol", "hydrocarbon", "alkane", "alkene", "alkyne", "periodic", "element", "iupac", "sodium", 
-    "chlorin", "carbon", "chem", "orbital", "compound", "catalyst", "synthesis", "thermodynamics", "entropy",
-    "kinetics", "oxidation", "reduction", "redox", "anode", "cathode", "titration", "solution", "solvent", 
-    "solute", "equilibrium", "ph value"
-  ];
-  
-  // Math keywords
-  const mathKeywords = [
-    "vector", "matrix", "matrices", "derivative", "integral", "integrate", "differentiate", "calculus", 
-    "trigonomet", "sine", "cosine", "tangent", "logarithm", "log", "theorem", "proof", "triangle", "geometry", 
-    "algebra", "probability", "statistics", "equation", "cross product", "dot product", "limit", "function",
-    "determinant", "geometric", "arithmetic", "permutation", "combination", "binomial"
-  ];
+export async function detectSubjectLLM(
+  query: string,
+  history: any[],
+  apiKey: string
+): Promise<"physics" | "chemistry" | "mathematics" | "general"> {
+  const chatHistoryContext = history
+    .slice(-3)
+    .map(m => `${m.role === "user" ? "Student" : "Tutor"}: ${m.message || m.content}`)
+    .join("\n");
 
-  // Physics keywords
-  const physKeywords = [
-    "force", "energy", "velocity", "acceleration", "gravity", "mass", "friction", "charge", "electric", 
-    "magnetic", "field", "coulomb", "ohm", "kirchhoff", "voltage", "current", "circuit", "amperes", "watts", 
-    "resistance", "resistor", "newton", "joule", "thermodynamic", "wave", "light", "optics", "quantum", 
-    "momentum", "motion", "kinematics", "capacitance", "capacitor", "inductance", "inductor", "refraction",
-    "reflection", "prism", "lens", "relativity", "sound", "frequency", "wavelength"
-  ];
+  const prompt = `You are an academic classifier. Classify the subject of the student's query based on the query and chat history.
+Chat History:
+${chatHistoryContext}
 
-  let chemCount = 0;
-  let mathCount = 0;
-  let physCount = 0;
+Student's Query: "${query}"
 
-  for (const w of chemKeywords) {
-    if (text.includes(w)) chemCount++;
+Respond with exactly one of the following words: "physics", "chemistry", "mathematics", or "general". Do not include any punctuation, formatting, or extra text.`;
+
+  const url = "https://api.meshapi.ai/v1/chat/completions";
+  const model = "openai/gpt-4o-mini";
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 5,
+        temperature: 0,
+      }),
+    });
+    if (!res.ok) {
+      console.error("[detectSubjectLLM] API returned non-OK status:", res.status);
+      return "general";
+    }
+    const json = await res.json();
+    const content = (json.choices?.[0]?.message?.content || "").trim().toLowerCase();
+    
+    if (content.includes("mathematics") || content.includes("math")) return "mathematics";
+    if (content.includes("chemistry") || content.includes("chem")) return "chemistry";
+    if (content.includes("physics") || content.includes("phys")) return "physics";
+    return "general";
+  } catch (e) {
+    console.error("[detectSubjectLLM] Failed:", e);
+    return "general";
   }
-  for (const w of mathKeywords) {
-    if (text.includes(w)) mathCount++;
-  }
-  for (const w of physKeywords) {
-    if (text.includes(w)) physCount++;
-  }
-
-  if (chemCount > mathCount && chemCount > physCount) return "chemistry";
-  if (mathCount > chemCount && mathCount > physCount) return "mathematics";
-  if (physCount > chemCount && physCount > mathCount) return "physics";
-
-  return null;
 }
+
 
