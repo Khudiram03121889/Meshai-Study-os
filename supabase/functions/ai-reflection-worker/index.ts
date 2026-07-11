@@ -1,5 +1,5 @@
 /**
- * StudyOS V2 — Reflection Layer (Handbook §08, §19 §10)
+ * MeshStudy AI — Reflection Layer (Handbook §08, §19 §10)
  *
  * Runs asynchronously after the chat completes. It reads the last few turns,
  * identifies core conceptual gaps, extracted insights, or user preferences,
@@ -21,7 +21,7 @@ interface ChatTurn {
   content: string;
 }
 
-const REFLECTION_PROMPT = `You are the StudyOS Reflection Engine.
+const REFLECTION_PROMPT = `You are the MeshStudy AI Reflection Engine.
 Your job is to analyze the recent chat between the student and the AI tutor and extract any LONG-TERM MEMORIES.
 
 Memory Types:

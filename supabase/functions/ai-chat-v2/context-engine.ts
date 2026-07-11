@@ -1,5 +1,5 @@
 /**
- * StudyOS V2 — Context Engine & Prompt Builder (Handbook §19 §8, §19 §9)
+ * MeshStudy AI — Context Engine & Prompt Builder (Handbook §19 §8, §19 §9)
  *
  * Compresses raw database rows into dense XML context blocks to minimize
  * token usage. Applies strict token limits (default 4k).
@@ -86,7 +86,7 @@ export function buildSystemPrompt(userPreferences: any, xmlContext: string, lang
     languageRule = `\n- Language & Explanations: Explain concepts strictly in English.`;
   }
   
-  return `You are StudyOS V2, a highly personalized, Socratic AI tutor.
+  return `You are MeshStudy AI, a highly personalized, Socratic AI tutor.
 
 User Preferences:
 - Explanation Style: ${style}

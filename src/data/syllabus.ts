@@ -1155,7 +1155,7 @@ export function getBoardSpecificSubjects(baseSubjects: Subject[], board: string)
     });
   }
 
-  if (board === "Karnataka State Board (PUC)") {
+  if (["Karnataka State Board (PUC)", "Bihar Board (BSEB)", "West Bengal Board (WBCHSE)", "Odisha Board (CHSE)", "Chhattisgarh Board (CGBSE)"].includes(board)) {
     return subjectsClone.map((sub) => {
       if (sub.id === "physics") {
         if (!sub.chapters.some((ch) => ch.id === "phy-ch15")) {

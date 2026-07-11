@@ -1,5 +1,5 @@
 /**
- * StudyOS V2 — Intent Detection Module (Handbook §03, §19 §4)
+ * MeshStudy AI — Intent Detection Module (Handbook §03, §19 §4)
  *
  * Fast heuristic classifier that bypasses LLMs entirely.
  * Runs in <5ms using regex/keyword matching.

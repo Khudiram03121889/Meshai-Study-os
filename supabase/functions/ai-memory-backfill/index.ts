@@ -1,5 +1,5 @@
 /**
- * StudyOS V2 — Memory Backfill
+ * MeshStudy AI — Memory Backfill
  *
  * Walks the user's entire chat_messages history conversation-by-conversation,
  * runs the same reflection extraction used after each new chat, and
@@ -14,7 +14,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const REFLECTION_PROMPT = `You are the StudyOS Reflection Engine.
+const REFLECTION_PROMPT = `You are the MeshStudy AI Reflection Engine.
 Analyze the chat between a student and their AI tutor and extract LONG-TERM MEMORIES.
 
 Memory Types:

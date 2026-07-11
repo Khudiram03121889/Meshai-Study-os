@@ -109,11 +109,11 @@ serve(async (req: Request) => {
 
     // 7. Invoke main LLM (Streaming) with subject-based routing
     const selectedModel = resolvedSubjectId === "mathematics"
-      ? "anthropic/claude-3-5-sonnet"
+      ? "anthropic/claude-sonnet-5"
       : resolvedSubjectId === "physics"
       ? "openai/gpt-4o"
       : resolvedSubjectId === "chemistry"
-      ? "google/gemini-1.5-pro"
+      ? "google/gemini-2.5-pro"
       : "openai/gpt-4o";
 
     let userContent: any = query || "Solve or explain this image.";

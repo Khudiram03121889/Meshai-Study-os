@@ -24,7 +24,7 @@ const runFunc = (name: string, port: number) => {
       MESH_API_KEY: Deno.env.get("MESH_API_KEY") || "",
       SUPABASE_URL: Deno.env.get("SUPABASE_URL") || "",
       SUPABASE_ANON_KEY: Deno.env.get("SUPABASE_ANON_KEY") || "",
-      SUPABASE_SERVICE_ROLE_KEY: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
+      SUPABASE_SERVICE_ROLE_KEY: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY") || "",
     },
     stdout: "piped",
     stderr: "piped",
@@ -60,24 +60,27 @@ try {
     const key = trimmed.slice(0, idx).trim();
     let val = trimmed.slice(idx + 1).trim();
     if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
-    if (!Deno.env.get(key)) {
-      Deno.env.set(key, val);
-    }
+    // Always set environment variables from .env
+    Deno.env.set(key, val);
   }
 } catch {
   console.log("No root .env found or failed to read. Relying on system env.");
 }
 
-// Map supabase client envs to standard ones if needed
-if (Deno.env.get("VITE_SUPABASE_URL") && !Deno.env.get("SUPABASE_URL")) {
+// Map supabase client envs to standard ones
+if (Deno.env.get("VITE_SUPABASE_URL")) {
   Deno.env.set("SUPABASE_URL", Deno.env.get("VITE_SUPABASE_URL")!);
 }
-if (Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY") && !Deno.env.get("SUPABASE_ANON_KEY")) {
+if (Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY")) {
   Deno.env.set("SUPABASE_ANON_KEY", Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY")!);
 }
-if (Deno.env.get("meshai_api") && !Deno.env.get("MESH_API_KEY")) {
+if (Deno.env.get("meshai_api")) {
   Deno.env.set("MESH_API_KEY", Deno.env.get("meshai_api")!);
 }
+
+console.log(`[Gateway] SUPABASE_URL: "${Deno.env.get("SUPABASE_URL")}"`);
+console.log(`[Gateway] SUPABASE_ANON_KEY: "${Deno.env.get("SUPABASE_ANON_KEY")}"`);
+console.log(`[Gateway] MESH_API_KEY: "${Deno.env.get("MESH_API_KEY")}"`);
 
 const processes = [
   runFunc("ai-chat-v2", 8001),

@@ -1,5 +1,5 @@
 /**
- * StudyOS V2 Event System (Handbook §09)
+ * MeshStudy AI Event System (Handbook §09)
  *
  * Thin client-side wrapper that records user actions as immutable events.
  * Events are written directly to the `events` table in Supabase.

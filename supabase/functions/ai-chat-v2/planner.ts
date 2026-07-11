@@ -1,5 +1,5 @@
 /**
- * StudyOS V2 — Planner Agent (Handbook §02, §19 §6)
+ * MeshStudy AI — Planner Agent (Handbook §02, §19 §6)
  *
  * A fast zero-shot classifier LLM call (e.g. gpt-4o-mini).
  * It receives the user query + detected intent, and outputs a JSON list
@@ -19,7 +19,7 @@ export interface PlannerDecision {
   context_budget_override?: number; // Optional custom max tokens for this query
 }
 
-const PLANNER_SYSTEM_PROMPT = `You are the StudyOS Retrieval Planner.
+const PLANNER_SYSTEM_PROMPT = `You are the MeshStudy AI Retrieval Planner.
 Your job is to decide which tools to call to fetch context from the student's database.
 
 Available Tools:

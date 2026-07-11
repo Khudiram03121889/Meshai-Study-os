@@ -80,7 +80,7 @@ serve(async (req) => {
       return `- Subject: ${s.name}, ID: ${s.id}\n${chaptersStr}`;
     }).join("\n");
 
-    const prompt = `You are a StudyOS Class Log Parser.
+    const prompt = `You are a MeshStudy AI Class Log Parser.
 Your job is to analyze a student's description and/or the uploaded image of their handwritten class notes/whiteboard, and map it to a structured JSON object.
 
 Available Subjects, Chapters, and Topics:

@@ -15,6 +15,19 @@ const BOARDS = [
   "Andhra Pradesh Board (BIEAP)",
   "Telangana Board (TSBIE)",
   "Tamil Nadu State Board",
+  "UP Board (UPMSP)",
+  "Bihar Board (BSEB)",
+  "Rajasthan Board (RBSE)",
+  "West Bengal Board (WBCHSE)",
+  "Gujarat Board (GSEB)",
+  "Madhya Pradesh Board (MPBSE)",
+  "Punjab School Education Board (PSEB)",
+  "Haryana Board (BSEH)",
+  "Kerala State Board (DHSE)",
+  "Odisha Board (CHSE)",
+  "Chhattisgarh Board (CGBSE)",
+  "Assam Board (AHSEC)",
+  "Jharkhand Academic Council (JAC)",
   "Other State Board"
 ];
 
