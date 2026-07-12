@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Local Deno Router Gateway for Supabase Edge Functions (CORS enabled)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -8,6 +9,10 @@ const proxyMap: Record<string, number> = {
   "parse-quick-log": 8002,
   "revision-suggest": 8003,
   "study-mode": 8004,
+  "ai-memory-backfill": 8005,
+  "ai-reflection-worker": 8006,
+  "ingest-note": 8007,
+  "ingest-test": 8008,
 };
 
 // Spawn subprocesses
@@ -87,6 +92,10 @@ const processes = [
   runFunc("parse-quick-log", 8002),
   runFunc("revision-suggest", 8003),
   runFunc("study-mode", 8004),
+  runFunc("ai-memory-backfill", 8005),
+  runFunc("ai-reflection-worker", 8006),
+  runFunc("ingest-note", 8007),
+  runFunc("ingest-test", 8008),
 ];
 
 // Clean shutdown

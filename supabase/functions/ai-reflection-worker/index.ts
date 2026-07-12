@@ -178,4 +178,4 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   }
-});
+}, { port: parseInt(Deno.env.get("PORT") || "8000") });

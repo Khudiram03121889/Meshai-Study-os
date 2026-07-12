@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { extractText, getDocumentProxy } from "https://esm.sh/unpdf@0.12.1";
@@ -284,4 +285,4 @@ serve(async (req: Request) => {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, { port: parseInt(Deno.env.get("PORT") || "8000") });
