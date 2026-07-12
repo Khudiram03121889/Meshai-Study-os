@@ -146,7 +146,8 @@ serve(async (req: Request) => {
       body: JSON.stringify({
         model: selectedModel,
         messages,
-        temperature: 0.7,
+        // Anthropic models via AWS Bedrock reject temperature (deprecated for ConverseStream)
+        ...(selectedModel.startsWith("anthropic/") ? {} : { temperature: 0.7 }),
         stream: true
       })
     });
