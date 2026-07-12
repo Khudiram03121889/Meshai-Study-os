@@ -116,9 +116,9 @@ serve(async (req: Request) => {
     const systemPrompt = buildSystemPrompt(prefs, xmlContext, language);
 
     // 7. Invoke main LLM (Streaming) with subject-based routing
-    // ponytail: claude-sonnet-4-5 is the current affordable Sonnet; upgrade to claude-sonnet-5 when it lands on MeshAPI
+    // ponytail: claude-haiku-4.5 matches Sonnet 4 reasoning at Haiku pricing ($0.80/M in)
     const selectedModel = resolvedSubjectId === "mathematics"
-      ? "anthropic/claude-sonnet-4-5"
+      ? "anthropic/claude-haiku-4.5"
       : resolvedSubjectId === "physics"
       ? "openai/gpt-4o"
       : resolvedSubjectId === "chemistry"
