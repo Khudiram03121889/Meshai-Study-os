@@ -35,7 +35,7 @@ export default function Settings() {
     } catch (err: any) {
       toast.error("Failed to seed account: " + err.message);
     } finally {
-      seeding && setSeeding(false);
+      setSeeding(false);
     }
   };
 
