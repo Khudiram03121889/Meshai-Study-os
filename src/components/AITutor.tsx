@@ -95,8 +95,12 @@ async function streamChat({ messages, studyContext, language, imageUrl, onDelta,
   });
 
   if (!resp.ok) {
-    const err = await resp.json().catch(() => ({ error: "Unknown error" }));
-    throw new Error(err.error || `Error ${resp.status}`);
+    const errPayload = await resp.json().catch(() => ({ error: "Unknown error" }));
+    // Mesh API may return {error: {message: '...', type: '...'}} — safely extract string
+    const errMsg = typeof errPayload.error === "string"
+      ? errPayload.error
+      : errPayload.error?.message || JSON.stringify(errPayload.error) || `HTTP ${resp.status}`;
+    throw new Error(errMsg);
   }
   if (!resp.body) throw new Error("No response body");
 
@@ -119,19 +123,20 @@ async function streamChat({ messages, studyContext, language, imageUrl, onDelta,
         if (!line.startsWith("data: ")) continue;
         const jsonStr = line.slice(6).trim();
         if (jsonStr === "[DONE]") { streamDone = true; break; }
-        try {
-          const parsed = JSON.parse(jsonStr);
-          // Surface backend stream errors as exceptions so handleSend shows a toast
-          if (parsed.error) throw new Error(parsed.error);
-          const model = parsed.choices?.[0]?.delta?.model as string | undefined;
-          if (model) onModel(model);
-          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (content) onDelta(content);
-        } catch (parseErr: any) {
-          if (parseErr?.message && !parseErr.message.startsWith("JSON")) throw parseErr;
-          buffer = line + "\n" + buffer;
-          break;
+        // Separate JSON.parse errors from intentional stream errors
+        let parsed: any;
+        try { parsed = JSON.parse(jsonStr); } catch { buffer = line + "\n" + buffer; break; }
+        if (parsed.error) {
+          // Mesh API may nest: {error: {message: '...', type: '...'}}
+          const msg = typeof parsed.error === "string"
+            ? parsed.error
+            : parsed.error?.message || JSON.stringify(parsed.error);
+          throw new Error(msg);
         }
+        const model = parsed.choices?.[0]?.delta?.model as string | undefined;
+        if (model) onModel(model);
+        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+        if (content) onDelta(content);
       }
     }
 
@@ -144,7 +149,8 @@ async function streamChat({ messages, studyContext, language, imageUrl, onDelta,
         if (jsonStr === "[DONE]") continue;
         try {
           const parsed = JSON.parse(jsonStr);
-          if (parsed.error) throw new Error(parsed.error);
+          // Ignore residual stream errors in the tail buffer
+          if (parsed.error) continue;
           const model = parsed.choices?.[0]?.delta?.model as string | undefined;
           if (model) onModel(model);
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
