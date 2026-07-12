@@ -105,49 +105,57 @@ async function streamChat({ messages, studyContext, language, imageUrl, onDelta,
   let buffer = "";
   let streamDone = false;
 
-  while (!streamDone) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    let newlineIndex: number;
-    while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
-      let line = buffer.slice(0, newlineIndex);
-      buffer = buffer.slice(newlineIndex + 1);
-      if (line.endsWith("\r")) line = line.slice(0, -1);
-      if (line.startsWith(":") || line.trim() === "") continue;
-      if (!line.startsWith("data: ")) continue;
-      const jsonStr = line.slice(6).trim();
-      if (jsonStr === "[DONE]") { streamDone = true; break; }
-      try {
-        const parsed = JSON.parse(jsonStr);
-        const model = parsed.choices?.[0]?.delta?.model as string | undefined;
-        if (model) onModel(model);
-        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-        if (content) onDelta(content);
-      } catch {
-        buffer = line + "\n" + buffer;
-        break;
+  try {
+    while (!streamDone) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let newlineIndex: number;
+      while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+        let line = buffer.slice(0, newlineIndex);
+        buffer = buffer.slice(newlineIndex + 1);
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") continue;
+        if (!line.startsWith("data: ")) continue;
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") { streamDone = true; break; }
+        try {
+          const parsed = JSON.parse(jsonStr);
+          // Surface backend stream errors as exceptions so handleSend shows a toast
+          if (parsed.error) throw new Error(parsed.error);
+          const model = parsed.choices?.[0]?.delta?.model as string | undefined;
+          if (model) onModel(model);
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) onDelta(content);
+        } catch (parseErr: any) {
+          if (parseErr?.message && !parseErr.message.startsWith("JSON")) throw parseErr;
+          buffer = line + "\n" + buffer;
+          break;
+        }
       }
     }
-  }
 
-  if (buffer.trim()) {
-    for (let raw of buffer.split("\n")) {
-      if (!raw) continue;
-      if (raw.endsWith("\r")) raw = raw.slice(0, -1);
-      if (!raw.startsWith("data: ")) continue;
-      const jsonStr = raw.slice(6).trim();
-      if (jsonStr === "[DONE]") continue;
-      try {
-        const parsed = JSON.parse(jsonStr);
-        const model = parsed.choices?.[0]?.delta?.model as string | undefined;
-        if (model) onModel(model);
-        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-        if (content) onDelta(content);
-      } catch { /* ignore */ }
+    if (buffer.trim()) {
+      for (let raw of buffer.split("\n")) {
+        if (!raw) continue;
+        if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+        if (!raw.startsWith("data: ")) continue;
+        const jsonStr = raw.slice(6).trim();
+        if (jsonStr === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(jsonStr);
+          if (parsed.error) throw new Error(parsed.error);
+          const model = parsed.choices?.[0]?.delta?.model as string | undefined;
+          if (model) onModel(model);
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) onDelta(content);
+        } catch { /* ignore residual parse errors */ }
+      }
     }
+  } finally {
+    // Always call onDone so loading state is cleared even on stream errors
+    onDone();
   }
-  onDone();
 }
 
 export default function AITutor() {
@@ -350,24 +358,23 @@ export default function AITutor() {
         imageUrl: userMsg.image,
         onDelta: (chunk) => upsertAssistant(chunk),
         onModel: (model) => handleModel(model),
-        onDone: async () => {
-          setLoading(false);
-          if (convId) {
-            const finalMessages = [...updatedMessages, { role: "assistant" as const, content: assistantSoFar, model: routedModel }];
-            await saveMessages(convId, finalMessages);
-            fetchConversations();
-            
-            // Fire Reflection Worker asynchronously
-            const subjectId = studyContext?.startedChapters?.[0]?.subject_id;
-            supabase.functions.invoke("ai-reflection-worker", { 
-              body: { history: finalMessages, subjectId } 
-            }).catch(e => console.error("Reflection failed:", e));
-          }
-        },
+        onDone: () => { setLoading(false); },
       });
+      // Only save messages on successful stream completion
+      if (convId) {
+        const finalMessages = [...updatedMessages, { role: "assistant" as const, content: assistantSoFar, model: routedModel }];
+        await saveMessages(convId, finalMessages);
+        fetchConversations();
+        
+        // Fire Reflection Worker asynchronously
+        const subjectId = studyContext?.startedChapters?.[0]?.subject_id;
+        supabase.functions.invoke("ai-reflection-worker", { 
+          body: { history: finalMessages, subjectId } 
+        }).catch(e => console.error("Reflection failed:", e));
+      }
     } catch (e: any) {
       console.error(e);
-      setLoading(false);
+      // loading is already cleared by onDone's finally; just show the error
       toast.error(e.message || "Failed to get AI response");
     }
   };

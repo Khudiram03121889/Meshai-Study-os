@@ -116,8 +116,9 @@ serve(async (req: Request) => {
     const systemPrompt = buildSystemPrompt(prefs, xmlContext, language);
 
     // 7. Invoke main LLM (Streaming) with subject-based routing
+    // ponytail: claude-sonnet-4-5 is the current affordable Sonnet; upgrade to claude-sonnet-5 when it lands on MeshAPI
     const selectedModel = resolvedSubjectId === "mathematics"
-      ? "anthropic/claude-sonnet-5"
+      ? "anthropic/claude-sonnet-4-5"
       : resolvedSubjectId === "physics"
       ? "openai/gpt-4o"
       : resolvedSubjectId === "chemistry"
@@ -172,7 +173,8 @@ serve(async (req: Request) => {
       (e: any) => console.error("Log failed", e)
     );
 
-    // Create a modified stream that prepends the model information in SSE format
+    // Create a modified stream that prepends the model information in SSE format.
+    // On error, emit a typed SSE error event before closing so the client can show a toast.
     const encoder = new TextEncoder();
     const customStream = new ReadableStream({
       async start(controller) {
@@ -188,8 +190,10 @@ serve(async (req: Request) => {
             if (done) break;
             controller.enqueue(value);
           }
-        } catch (e) {
-          controller.error(e);
+        } catch (e: any) {
+          // Emit an SSE error event so the client can surface it instead of spinning
+          const errChunk = `data: ${JSON.stringify({ error: e?.message || "Stream error" })}\n\n`;
+          controller.enqueue(encoder.encode(errChunk));
         } finally {
           controller.close();
         }
